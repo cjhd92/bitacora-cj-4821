@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f6e68">
+<title>Bitácora de reparto</title>
+<style>
+  :root {
+    --bg: #eef2f4;
+    --surface: #ffffff;
+    --tint: #f2f6f7;
+    --ink: #14232b;
+    --muted: #5b6b74;
+    --line: #d9e1e6;
+    --primary: #0f6e68;
+    --primary-ink: #ffffff;
+    --accent: #f0a81c;
+    --danger: #b3392f;
+    --ok: #1f7a4a;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(20, 35, 43, .06), 0 6px 18px rgba(20, 35, 43, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e191e; --surface: #162830; --tint: #1b323b; --ink: #e8f0f2; --muted: #9db0b8;
+      --line: #28434d; --primary: #3fb5aa; --primary-ink: #06201e; --accent: #f3b53f;
+      --danger: #ff8a7d; --ok: #6fd49a; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .wrap { max-width: 540px; margin: 0 auto; padding: 0 16px 40px; }
+
+  /* Cabecera */
+  header.top {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(16px + env(safe-area-inset-top)) 0 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand svg { flex: none; width: 40px; height: 40px; }
+  h1 { font-size: 19px; line-height: 1.2; margin: 0; letter-spacing: -.01em; }
+  .sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+  .chip {
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 14px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chip[hidden] { display: none; }
+
+  /* Tarjetas */
+  .card {
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1px solid var(--line); padding: 20px 18px; margin-bottom: 16px;
+  }
+  h2 { font-size: 17px; margin: 0 0 14px; }
+  label, .lbl { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%; font: inherit; color: var(--ink); background: var(--tint);
+    border: 1.5px solid transparent; border-radius: 12px; padding: 13px 14px; min-height: 48px;
+  }
+  input:focus { outline: none; border-color: var(--primary); background: var(--surface); }
+  input::placeholder { color: var(--muted); opacity: .7; }
+  .field { margin-bottom: 14px; min-width: 0; }
+  input[type="date"], input[type="month"] { min-width: 0; max-width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, .chip:focus-visible, input:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  .btn {
+    width: 100%; min-height: 50px; border: 0; border-radius: 14px; font-weight: 700; font-size: 16px;
+    background: var(--primary); color: var(--primary-ink); transition: transform .08s ease, opacity .2s;
+  }
+  .btn:active { transform: scale(.985); }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .btn.ghost { background: var(--tint); color: var(--ink); }
+  .link { background: none; border: 0; color: var(--primary); font-weight: 600; padding: 8px 0; font-size: 15px; }
+
+  /* Pestañas */
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 16px; }
+  .tabs button { border: 0; background: transparent; color: var(--muted); font-weight: 700;
+    padding: 11px; border-radius: 10px; min-height: 44px; }
+  .tabs button[aria-selected="true"] { background: var(--primary); color: var(--primary-ink); }
+
+  /* Navegación de día */
+  .daynav { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; align-items: center; margin-bottom: 18px; }
+  .daynav button { height: 48px; border: 0; border-radius: 12px; background: var(--tint); color: var(--ink);
+    font-size: 22px; font-weight: 700; }
+  .daynav input { text-align: center; font-weight: 700; }
+
+  /* Contador de paquetes */
+  .stepper { display: grid; grid-template-columns: 56px 1fr 56px; gap: 8px; }
+  .stepper button { height: 56px; border: 0; border-radius: 14px; background: var(--tint); color: var(--ink);
+    font-size: 26px; font-weight: 700; }
+  .stepper input { height: 56px; text-align: center; font-size: 26px; font-weight: 800; padding: 0; }
+
+  /* Gastos */
+  .gasto { display: grid; grid-template-columns: 1fr 100px 44px; gap: 8px; margin-bottom: 8px; }
+  .gasto button { border: 0; border-radius: 12px; background: var(--tint); color: var(--danger);
+    font-size: 20px; font-weight: 700; }
+
+  /* Boleta resumen */
+  .ticket { position: relative; margin: 20px 0 0; background: var(--tint); border-radius: 14px; padding: 16px 18px; }
+  .ticket .row { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; padding: 3px 0; }
+  .ticket .row span:last-child { font-variant-numeric: tabular-nums; }
+  .ticket .cut { position: relative; margin: 12px -18px; border-top: 2px dashed var(--line); }
+  .ticket .cut::before, .ticket .cut::after {
+    content: ""; position: absolute; top: -10px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface);
+  }
+  .ticket .cut::before { left: -9px; } .ticket .cut::after { right: -9px; }
+  .ticket .total { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 18px; }
+  .ticket .total b { background: var(--accent); color: #1c1300; padding: 2px 10px; border-radius: 8px;
+    font-variant-numeric: tabular-nums; }
+
+  /* Barra de guardado fija */
+  .savebar { position: sticky; bottom: 0; margin: 18px -18px -20px; padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--surface) 70%, transparent); border-radius: 0 0 var(--radius) var(--radius); }
+
+  /* Rangos */
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; }
+  .seg button { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px;
+    padding: 10px 6px; font-size: 14px; font-weight: 600; min-height: 46px; }
+  .seg button.on { border-color: var(--primary); background: var(--tint); color: var(--primary); }
+
+  .msg { min-height: 22px; margin-top: 12px; font-size: 15px; }
+  .msg.error { color: var(--danger); } .msg.ok { color: var(--ok); }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="11" fill="var(--primary)"/>
+        <path d="M12 17l8-4.5 8 4.5v9l-8 4.5-8-4.5z" fill="none" stroke="var(--primary-ink)" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M12 17l8 4.5 8-4.5M20 21.5v9" fill="none" stroke="var(--primary-ink)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="31" cy="9" r="3.2" fill="var(--accent)"/>
+      </svg>
+      <div>
+        <h1>Bitácora de reparto</h1>
+        <p class="sub" id="sub">Tu registro diario y tu factura</p>
+      </div>
+    </div>
+    <button class="chip" id="who" hidden aria-label="Cerrar sesión"></button>
+  </header>
+
+  <!-- Acceso -->
+  <section class="card" id="acceso" hidden>
+    <h2>Entrar</h2>
+    <div class="field">
+      <label for="token">Clave de acceso</label>
+      <input id="token" type="password" autocomplete="off" placeholder="Pega aquí tu clave">
+    </div>
+    <button class="btn" id="btnToken">Entrar</button>
+    <div class="msg error" id="msgAcceso" role="status"></div>
+  </section>
+
+  <div id="app" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabRegistro" aria-selected="true">Registro</button>
+      <button role="tab" id="tabFactura" aria-selected="false">Factura</button>
+    </div>
+
+    <!-- Registro diario -->
+    <section class="card" id="registro">
+      <div class="daynav">
+        <button id="prevDia" aria-label="Día anterior">‹</button>
+        <input id="fecha" type="date" aria-label="Fecha">
+        <button id="nextDia" aria-label="Día siguiente">›</button>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Paquetes entregados</span>
+        <div class="stepper">
+          <button type="button" id="menos" aria-label="Uno menos">−</button>
+          <input id="paquetes" type="number" inputmode="numeric" min="0" step="1" placeholder="0" aria-label="Paquetes">
+          <button type="button" id="mas" aria-label="Uno más">+</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="tarifa">Tarifa (€)</label>
+          <input id="tarifa" type="number" inputmode="decimal" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="propina">Propina (€)</label>
+          <input id="propina" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label for="ultra">Ultraportista</label>
+        <input id="ultra" type="text" maxlength="60" placeholder="Opcional">
+      </div>
+
+      <span class="lbl">Gastos del día</span>
+      <div id="gastos"></div>
+      <button type="button" class="link" id="btnGasto">+ Añadir gasto</button>
+
+      <div class="ticket" id="ticket" aria-live="polite"></div>
+
+      <div class="savebar">
+        <button class="btn" id="btnGuardar">Guardar día</button>
+        <div class="msg" id="msg" role="status"></div>
+      </div>
+    </section>
+
+    <!-- Factura -->
+    <section class="card" id="factura" hidden>
+      <h2>Generar factura</h2>
+      <div class="field">
+        <label for="mes">Mes</label>
+        <input id="mes" type="month">
+      </div>
+      <div class="seg" role="group" aria-label="Periodo">
+        <button type="button" data-rango="mes">Mes completo</button>
+        <button type="button" data-rango="q1">Del 1 al 15</button>
+        <button type="button" data-rango="q2">Del 15 al final</button>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="desde">Desde</label><input id="desde" type="date"></div>
+        <div class="field"><label for="hasta">Hasta</label><input id="hasta" type="date"></div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="numero">Nº de factura</label>
+          <input id="numero" type="number" inputmode="numeric" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="fechaFactura">Fecha de la factura</label>
+          <input id="fechaFactura" type="date">
+        </div>
+      </div>
+      <p class="hint" id="numHint"></p>
+      <button class="btn" id="btnFactura" style="margin-top:14px">Generar factura PDF</button>
+      <div class="msg" id="msg2" role="status"></div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ====== CONFIGURACIÓN (lo único que se cambia, una sola vez) ====== */
+const API_URL = "https://3aarcghuc3zbdx7ad425xwfgp40samoi.lambda-url.eu-west-1.on.aws/";   // Function URL de la Lambda
+/* El nombre, la tarifa, los datos de la factura y el nº de factura NO están aquí:
+   llegan de AWS según la clave de cada usuario. Este archivo es igual para todos. */
+/* ================================================================== */
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+let token = store.get("bitacora_token") || "";
+let perfil = null;     // datos del usuario (vienen de AWS al entrar)
+let estado = {};       // última factura y última tarifa (compartidas entre dispositivos)
+let fechaActual = "";
+let sucio = false;     // hay cambios sin guardar
+
+const redondeo = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const euro = n => {
+  const [ent, dec] = Math.abs(Number(n) || 0).toFixed(2).split(".");
+  return (Number(n) < 0 ? "-" : "") + ent.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + dec + " €";
+};
+const pad = n => String(n).padStart(2, "0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const verFecha = s => s.split("-").reverse().join("/");
+const tarifaDefecto = () => estado.tarifa || (perfil && perfil.tarifa_inicial) || 3;
+
+function setMsg(id, text, kind) {
+  const el = $(id);
+  el.textContent = text || "";
+  el.className = "msg" + (kind ? " " + kind : "");
+}
+
+async function api(payload) {
+  if (!token) throw new Error("Falta la clave de acceso");
+  if (API_URL.startsWith("PEGA_")) throw new Error("Falta configurar API_URL en el archivo");
+  let r;
+  try {
+    r = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({ ...payload, token })
+    });
+  } catch (e) {
+    throw new Error("Sin conexión. Revisa internet e inténtalo otra vez");
+  }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Error " + r.status);
+  return j;
+}
+
+/* ---------- Acceso ---------- */
+function mostrar() {
+  $("acceso").hidden = !!perfil;
+  $("app").hidden = !perfil;
+  $("who").hidden = !perfil;
+  $("who").textContent = perfil ? perfil.nombre : "";
+}
+
+async function iniciar() {
+  if (!token) { mostrar(); return; }
+  try {
+    perfil = (await api({ action: "perfil" })).perfil;
+    estado = (await api({ action: "estado" })).estado || {};
+  } catch (e) {
+    perfil = null;
+    if (/clave/i.test(e.message)) { token = ""; store.set("bitacora_token", ""); }
+    mostrar();
+    setMsg("msgAcceso", e.message, "error");
+    return;
+  }
+  setMsg("msgAcceso", "");
+  mostrar();
+  actualizarNumero();
+  limpiarFormulario();
+  resumen();
+  cargarDia();
+}
+
+$("btnToken").onclick = () => {
+  const v = $("token").value.trim();
+  if (!v) return;
+  token = v; store.set("bitacora_token", v); $("token").value = "";
+  iniciar();
+};
+$("token").addEventListener("keydown", e => { if (e.key === "Enter") $("btnToken").click(); });
+$("who").onclick = () => {
+  if (confirm("¿Cerrar sesión en este dispositivo?")) {
+    token = ""; perfil = null; estado = {}; store.set("bitacora_token", ""); mostrar();
+  }
+};
+
+/* ---------- Pestañas ---------- */
+function pestana(cual) {
+  const reg = cual === "registro";
+  $("registro").hidden = !reg; $("factura").hidden = reg;
+  $("tabRegistro").setAttribute("aria-selected", reg);
+  $("tabFactura").setAttribute("aria-selected", !reg);
+}
+$("tabRegistro").onclick = () => pestana("registro");
+$("tabFactura").onclick = () => pestana("factura");
+
+/* ---------- Gastos ---------- */
+function addGasto(concepto = "", monto = "") {
+  const row = document.createElement("div");
+  row.className = "gasto";
+  row.innerHTML = `<input type="text" maxlength="80" placeholder="Concepto" aria-label="Concepto del gasto">
+    <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="€" aria-label="Importe del gasto">
+    <button type="button" aria-label="Quitar gasto">×</button>`;
+  const [c, m, b] = row.children;
+  c.value = concepto; m.value = monto;
+  c.oninput = () => { sucio = true; };
+  m.oninput = () => { sucio = true; resumen(); };
+  b.onclick = () => { row.remove(); sucio = true; resumen(); };
+  $("gastos").appendChild(row);
+}
+$("btnGasto").onclick = () => { addGasto(); sucio = true; };
+
+function leerGastos() {
+  return [...$("gastos").children].map(r => ({
+    concepto: r.children[0].value.trim(),
+    monto: parseFloat(r.children[1].value)
+  })).filter(g => g.monto > 0);
+}
+
+/* ---------- Resumen del día ---------- */
+function resumen() {
+  const p = parseInt($("paquetes").value) || 0;
+  const t = parseFloat($("tarifa").value) || 0;
+  const prop = parseFloat($("propina").value) || 0;
+  const gas = leerGastos().reduce((s, g) => s + g.monto, 0);
+  const ganancia = p * t;
+  $("ticket").innerHTML = `
+    <div class="row"><span>${p} paquetes × ${euro(t)}</span><span>${euro(ganancia)}</span></div>
+    <div class="row"><span>Propina</span><span>${euro(prop)}</span></div>
+    <div class="row"><span>Gastos</span><span>− ${euro(gas)}</span></div>
+    <div class="cut"></div>
+    <div class="total"><span>Neto del día</span><b>${euro(ganancia + prop - gas)}</b></div>`;
+}
+["paquetes", "tarifa", "propina", "ultra"].forEach(id =>
+  $(id).addEventListener("input", () => { sucio = true; resumen(); }));
+$("mas").onclick = () => { $("paquetes").value = (parseInt($("paquetes").value) || 0) + 1; sucio = true; resumen(); };
+$("menos").onclick = () => {
+  $("paquetes").value = Math.max(0, (parseInt($("paquetes").value) || 0) - 1); sucio = true; resumen();
+};
+
+/* ---------- Cargar / guardar día ---------- */
+function limpiarFormulario() {
+  $("paquetes").value = "";
+  $("propina").value = "";
+  $("ultra").value = "";
+  $("tarifa").value = tarifaDefecto();
+  $("gastos").innerHTML = "";
+}
+
+async function cargarDia() {
+  if (!perfil) return;
+  const fecha = $("fecha").value;
+  if (!fecha) return;
+  fechaActual = fecha;
+  setMsg("msg", "Cargando…");
+  try {
+    const { day } = await api({ action: "get", date: fecha });
+    limpiarFormulario();
+    if (day) {
+      $("paquetes").value = day.paquetes;
+      $("tarifa").value = day.tarifa;        // la tarifa de ese día, no la actual
+      $("propina").value = day.propina || "";
+      $("ultra").value = day.ultraportista || "";
+      day.gastos.forEach(g => addGasto(g.concepto, g.monto));
+      setMsg("msg", "Día cargado. Puedes editarlo y volver a guardar.", "ok");
+    } else {
+      setMsg("msg", "");
+    }
+  } catch (e) {
+    setMsg("msg", e.message, "error");
+  }
+  sucio = false;
+  resumen();
+}
+
+function irAFecha(nueva) {
+  if (nueva === fechaActual) return;
+  if (sucio && !confirm("Hay cambios sin guardar. ¿Cambiar de día igualmente?")) {
+    $("fecha").value = fechaActual;
+    return;
+  }
+  $("fecha").value = nueva;
+  cargarDia();
+}
+$("fecha").addEventListener("change", () => irAFecha($("fecha").value));
+function moverDia(delta) {
+  const [y, m, d] = $("fecha").value.split("-").map(Number);
+  if (!y) return;
+  irAFecha(iso(new Date(y, m - 1, d + delta)));
+}
+$("prevDia").onclick = () => moverDia(-1);
+$("nextDia").onclick = () => moverDia(1);
+
+$("btnGuardar").onclick = async () => {
+  const fecha = $("fecha").value;
+  if (!fecha) return setMsg("msg", "Elige la fecha del día", "error");
+  const paquetes = parseInt($("paquetes").value);
+  if (isNaN(paquetes) || paquetes < 0) return setMsg("msg", "Escribe cuántos paquetes hiciste", "error");
+  const tarifa = parseFloat($("tarifa").value);
+  if (isNaN(tarifa) || tarifa < 0) return setMsg("msg", "Escribe la tarifa por paquete", "error");
+
+  const btn = $("btnGuardar");
+  btn.disabled = true;
+  setMsg("msg", "Guardando…");
+  try {
+    await api({
+      action: "save", date: fecha, paquetes, tarifa,
+      propina: parseFloat($("propina").value) || 0,
+      ultraportista: $("ultra").value.trim(),
+      gastos: leerGastos()
+    });
+    estado.tarifa = tarifa;    // el servidor también la recuerda para los demás dispositivos
+    sucio = false;
+    setMsg("msg", `Guardado el día ${verFecha(fecha)}`, "ok");
+  } catch (e) {
+    setMsg("msg", e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+/* ---------- Rangos de la factura ---------- */
+function rango(tipo) {
+  const [y, m] = $("mes").value.split("-").map(Number);
+  if (!y) return;
+  const ultimo = new Date(y, m, 0).getDate();
+  const f = d => `${y}-${pad(m)}-${pad(d)}`;
+  if (tipo === "mes") { $("desde").value = f(1); $("hasta").value = f(ultimo); }
+  if (tipo === "q1")  { $("desde").value = f(1); $("hasta").value = f(Math.min(15, ultimo)); }
+  if (tipo === "q2")  { $("desde").value = f(15); $("hasta").value = f(ultimo); }
+  document.querySelectorAll("[data-rango]").forEach(b => b.classList.toggle("on", b.dataset.rango === tipo));
+}
+document.querySelectorAll("[data-rango]").forEach(b => b.onclick = () => rango(b.dataset.rango));
+$("mes").addEventListener("change", () => rango("mes"));
+["desde", "hasta"].forEach(id => $(id).addEventListener("change", () =>
+  document.querySelectorAll("[data-rango]").forEach(b => b.classList.remove("on"))));
+
+function actualizarNumero() {
+  const ultima = parseInt(estado.ultima_factura) || 0;
+  $("numero").value = ultima + 1;
+  $("numHint").textContent = ultima
+    ? `La última factura registrada es la Nº ${ultima}. Si repites una anterior, escribe su número.`
+    : "Todavía no hay facturas registradas: empieza en la Nº 1.";
+}
+
+/* ---------- Factura PDF ---------- */
+$("btnFactura").onclick = async () => {
+  const desde = $("desde").value, hasta = $("hasta").value;
+  const numero = parseInt($("numero").value);
+  if (!desde || !hasta) return setMsg("msg2", "Elige las fechas desde y hasta", "error");
+  if (hasta < desde) return setMsg("msg2", "La fecha 'hasta' es anterior a 'desde'", "error");
+  if (!(numero >= 1)) return setMsg("msg2", "Escribe el número de la factura", "error");
+  if (!window.jspdf) return setMsg("msg2", "No se pudo cargar el generador de PDF. Revisa internet", "error");
+
+  const btn = $("btnFactura");
+  btn.disabled = true;
+  setMsg("msg2", "Leyendo los días…");
+  try {
+    const { days } = await api({ action: "range", from: desde, to: hasta });
+    if (!days.length) { setMsg("msg2", "No hay días guardados en ese periodo", "error"); return; }
+    crearPDF(days, desde, hasta, numero);
+    const prop = days.reduce((s, d) => s + d.propina, 0);
+    const gas = days.reduce((s, d) => s + d.gastos.reduce((a, g) => a + g.monto, 0), 0);
+    let aviso = `Factura Nº ${numero} generada con ${days.length} días. Aparte (no sale en la factura): propinas ${euro(prop)} · gastos ${euro(gas)}`;
+
+    if (numero > (parseInt(estado.ultima_factura) || 0)) {
+      if (confirm(`¿La factura Nº ${numero} es la definitiva?\n\nAceptar: se registra el número y la siguiente será la ${numero + 1}.\nCancelar: solo era una prueba, no se registra.`)) {
+        estado = (await api({ action: "factura_emitida", numero })).estado || estado;
+        actualizarNumero();
+        aviso += `. Registrada; la siguiente será la Nº ${numero + 1}.`;
+      }
+    }
+    setMsg("msg2", aviso, "ok");
+  } catch (e) {
+    setMsg("msg2", e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function crearPDF(days, desde, hasta, numero) {
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  const EMISOR = perfil.emisor, CLIENTE = perfil.facturar_a;
+  const IVA = perfil.iva, RETENCION = perfil.retencion;
+  const L = 15, R = 195;
+  const txt = (t, x, y, o) => doc.text(String(t), x, y, o);
+  const negrita = () => doc.setFont("helvetica", "bold");
+  const normal = () => doc.setFont("helvetica", "normal");
+
+  // Agrupar pedidos por precio (normalmente un solo precio)
+  const grupos = new Map();
+  for (const d of days) grupos.set(d.tarifa, (grupos.get(d.tarifa) || 0) + d.paquetes);
+  const lineas = [...grupos.entries()].map(([precio, uds]) => ({ precio, uds, base: redondeo(uds * precio) }));
+  const base = redondeo(lineas.reduce((s, l) => s + l.base, 0));
+  const iva = redondeo(base * IVA / 100);
+  const ret = redondeo(base * RETENCION / 100);
+  const total = redondeo(base + iva - ret);
+
+  // Cabecera: emisor a la izquierda, factura a la derecha
+  let y = 20;
+  doc.setFontSize(12); negrita(); txt(EMISOR.nombre, L, y);
+  doc.setFontSize(10); normal();
+  txt("DNI: " + EMISOR.dni, L, y + 6);
+  EMISOR.direccion.forEach((l, i) => txt(l, L, y + 12 + i * 5.5));
+
+  doc.setFontSize(22); negrita(); txt("FACTURA", R, y, { align: "right" });
+  doc.setFontSize(10); normal();
+  txt("N.º " + numero, R, y + 8, { align: "right" });
+  txt("Fecha " + verFecha($("fechaFactura").value || iso(new Date())), R, y + 14, { align: "right" });
+
+  // Cliente
+  y = 56;
+  negrita(); txt("Datos cliente:", L, y); normal();
+  txt(CLIENTE.nombre, L, y + 6);
+  txt("C.I.F.: " + CLIENTE.cif, L, y + 11.5);
+  CLIENTE.direccion.forEach((l, i) => txt(l, L, y + 17 + i * 5.5));
+
+  // Tabla
+  y = 95;
+  doc.setFillColor(233, 237, 241); doc.rect(L, y - 5.5, R - L, 8.5, "F");
+  negrita();
+  txt("DESCRIPCIÓN", L + 2, y);
+  txt("UNIDAD", 108, y, { align: "right" });
+  txt("BASE", 136, y, { align: "right" });
+  txt(`IVA (${IVA}%)`, 164, y, { align: "right" });
+  txt("TOTAL", R - 2, y, { align: "right" });
+  normal(); y += 9;
+
+  for (const l of lineas) {
+    const ivaL = redondeo(l.base * IVA / 100);
+    const desc = lineas.length === 1 ? "Cantidad de pedidos entregados"
+                                     : `Pedidos entregados a ${euro(l.precio)}`;
+    txt(desc, L + 2, y);
+    txt(l.uds, 108, y, { align: "right" });
+    txt(euro(l.base), 136, y, { align: "right" });
+    txt(euro(ivaL), 164, y, { align: "right" });
+    txt(euro(l.base + ivaL), R - 2, y, { align: "right" });
+    y += 7;
+  }
+  doc.setDrawColor(150); doc.line(L, y - 3, R, y - 3);
+  doc.setFontSize(9);
+  txt("Periodo facturado: " + verFecha(desde) + " al " + verFecha(hasta), L + 2, y + 2);
+  doc.setFontSize(10);
+
+  // Resumen: precio a la izquierda, importes a la derecha
+  y += 14;
+  if (lineas.length === 1) txt("Precio por pedido  " + euro(lineas[0].precio), L + 2, y);
+  const fila = (a, b, bold) => {
+    bold ? negrita() : normal();
+    txt(a, 112, y); txt(b, R - 2, y, { align: "right" }); y += 6.5;
+  };
+  fila("BASE IMPONIBLE", euro(base));
+  fila("Tipo de IVA", IVA + "%");
+  fila("IVA", euro(iva));
+  fila("Tipo de retención", RETENCION + "%");
+  fila("Retención", euro(ret));
+  doc.line(112, y - 4, R, y - 4);
+  doc.setFontSize(12);
+  fila("TOTAL", euro(total), true);
+  doc.setFontSize(10); normal();
+
+  // Pago y firma
+  y = Math.max(y + 14, 190);
+  negrita(); txt("Forma de pago:", L + 2, y); normal();
+  txt("Transferencia – " + EMISOR.banco, L + 2, y + 6);
+  txt("Destinatario: " + EMISOR.nombre, L + 2, y + 12);
+  txt("IBAN: " + EMISOR.iban, L + 2, y + 18);
+  txt(EMISOR.email, L + 2, y + 24);
+  txt(EMISOR.telefono, L + 2, y + 30);
+  negrita(); txt("Firma", 150, y); normal();
+  doc.setDrawColor(150); doc.line(135, y + 28, R, y + 28);
+
+  doc.save(`factura_${numero}_${desde}_${hasta}.pdf`);
+}
+
+/* ---------- Inicio ---------- */
+(function init() {
+  const hoy = new Date();
+  $("fecha").value = iso(hoy);
+  fechaActual = iso(hoy);
+  $("fechaFactura").value = iso(hoy);
+  $("mes").value = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}`;
+  rango("mes");
+  mostrar();
+  iniciar();
+})();
+</script>
+</body>
+</html>
